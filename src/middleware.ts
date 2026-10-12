@@ -7,7 +7,11 @@ const COOKIE_NAME = "mcp_session";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/login") || pathname.startsWith("/api/auth")) {
+  if (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/api/auth")
+  ) {
     return NextResponse.next();
   }
 

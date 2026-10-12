@@ -6,6 +6,7 @@ import { fetchAllPaidOrders } from "@/lib/orders";
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const sinceParam = searchParams.get("since");
+  const siteIdParam = searchParams.get("siteId");
   const since = sinceParam ? new Date(sinceParam) : undefined;
   if (sinceParam && since && Number.isNaN(since.getTime())) {
     return NextResponse.json({ error: "Invalid since parameter" }, { status: 400 });
@@ -13,7 +14,16 @@ export async function GET(request: Request) {
 
   try {
     await connectMongoose();
-    const sites = await getSiteModel().find({ isActive: true }).lean();
+    let sites;
+    if (siteIdParam) {
+      const site = await getSiteModel().findById(siteIdParam).lean();
+      if (!site) {
+        return NextResponse.json({ error: "Site not found", orders: [] }, { status: 404 });
+      }
+      sites = [site];
+    } else {
+      sites = await getSiteModel().find({ isActive: true }).lean();
+    }
     const orders = await fetchAllPaidOrders(sites, since);
 
     return NextResponse.json({ orders, fetchedAt: new Date().toISOString() });

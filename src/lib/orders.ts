@@ -1,14 +1,23 @@
 import { siteDb } from "@/lib/mongodb";
 import type { SiteConfig } from "@/models/site";
+import {
+  extractCustomerName,
+  extractCustomerPhone,
+  extractOrderDate,
+  extractOrderTotal,
+} from "@/lib/order-fields";
 
 export type UnifiedOrder = {
   id: string;
+  orderNumber?: string;
   siteId: string;
   siteName: string;
   createdAt: string;
-  total?: number;
+  total: number;
   customerName?: string;
   customerPhone?: string;
+  customerEmail?: string;
+  paymentStatus?: string;
   raw: Record<string, unknown>;
 };
 
@@ -37,38 +46,33 @@ export async function fetchPaidOrdersForSite(
   const docs = await collection
     .find(query)
     .sort({ [dateField]: -1 })
-    .limit(since ? 500 : 200)
+    .limit(since ? 500 : 10_000)
     .toArray();
 
   return docs.map((doc) => {
+    const raw = doc as Record<string, unknown>;
     const id = String(doc._id);
-    const created = doc[dateField];
-    const createdAt =
-      created instanceof Date
-        ? created.toISOString()
-        : typeof created === "string"
-          ? created
-          : new Date().toISOString();
+    const createdAt = extractOrderDate(raw, dateField).toISOString();
 
     return {
       id,
+      orderNumber:
+        typeof raw.orderNumber === "string" ? raw.orderNumber : undefined,
       siteId: String(site._id),
       siteName: site.name,
       createdAt,
-      total: typeof doc.total === "number" ? doc.total : undefined,
-      customerName:
-        typeof doc.customerName === "string"
-          ? doc.customerName
-          : typeof doc.name === "string"
-            ? doc.name
+      total: extractOrderTotal(raw),
+      customerName: extractCustomerName(raw),
+      customerPhone: extractCustomerPhone(raw),
+      customerEmail:
+        typeof raw.customerEmail === "string" ? raw.customerEmail : undefined,
+      paymentStatus:
+        typeof raw.paymentStatus === "string"
+          ? raw.paymentStatus
+          : typeof raw.orderStatus === "string"
+            ? raw.orderStatus
             : undefined,
-      customerPhone:
-        typeof doc.phone === "string"
-          ? doc.phone
-          : typeof doc.customerPhone === "string"
-            ? doc.customerPhone
-            : undefined,
-      raw: doc as Record<string, unknown>,
+      raw,
     };
   });
 }

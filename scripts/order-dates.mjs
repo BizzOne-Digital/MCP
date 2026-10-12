@@ -1,0 +1,10 @@
+import { readFileSync } from "fs";
+import mongoose from "mongoose";
+const env = readFileSync(".env.local", "utf8");
+const uri = env.match(/MONGODB_URI=(.+)/)?.[1]?.trim();
+const db = mongoose.connection.useDb("ono-poke-bar");
+await mongoose.connect(uri, { dbName: "ono-poke-bar" });
+const newest = await mongoose.connection.collection("orders").findOne({ paymentStatus: "paid" }, { sort: { createdAt: -1 } });
+const oldest = await mongoose.connection.collection("orders").findOne({ paymentStatus: "paid" }, { sort: { createdAt: 1 } });
+console.log("newest", newest?.createdAt, "oldest", oldest?.createdAt);
+await mongoose.disconnect();

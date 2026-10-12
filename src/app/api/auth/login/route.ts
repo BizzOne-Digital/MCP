@@ -6,16 +6,24 @@ import { env } from "@/lib/env";
 import { connectMongoose } from "@/lib/mongodb";
 import { getMcpAdminModel } from "@/models/mcp-admin";
 
-const bodySchema = z.object({ password: z.string().min(1) });
+const bodySchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
 
-async function passwordMatches(password: string): Promise<boolean> {
+async function verifyLogin(email: string, password: string): Promise<boolean> {
   await connectMongoose();
-  const admin = await getMcpAdminModel().findOne({ email: "admin@mcp.local" });
+  const admin = await getMcpAdminModel().findOne({
+    email: email.toLowerCase().trim(),
+  });
   if (admin?.passwordHash) {
     return bcrypt.compare(password, admin.passwordHash);
   }
   try {
-    return password === env.mcpPassword();
+    return (
+      email.toLowerCase().trim() === "admin@mcp.local" &&
+      password === env.mcpPassword()
+    );
   } catch {
     return false;
   }
@@ -29,8 +37,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  if (!(await passwordMatches(body.password))) {
-    return NextResponse.json({ error: "Wrong password" }, { status: 401 });
+  if (!(await verifyLogin(body.email, body.password))) {
+    return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   }
 
   const token = await createSessionToken();

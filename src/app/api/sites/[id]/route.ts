@@ -7,6 +7,7 @@ import { getSiteModel } from "@/models/site";
 const patchSchema = z.object({
   name: z.string().min(1).optional(),
   databaseName: z.string().min(1).optional(),
+  isActive: z.boolean().optional(),
 });
 
 export async function PATCH(
@@ -21,7 +22,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid site data" }, { status: 400 });
   }
 
-  if (!body.name && !body.databaseName) {
+  if (body.name === undefined && body.databaseName === undefined && body.isActive === undefined) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
   }
 
@@ -38,6 +39,9 @@ export async function PATCH(
   }
   if (body.databaseName) {
     site.databaseName = body.databaseName.trim();
+  }
+  if (body.isActive !== undefined) {
+    site.isActive = body.isActive;
   }
 
   await site.save();

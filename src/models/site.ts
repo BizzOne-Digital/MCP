@@ -19,6 +19,9 @@ const siteSchema = new Schema(
     adminLegacyEmail: { type: String },
     storedAdminEmail: { type: String },
     storedAdminPassword: { type: String },
+    fullName: { type: String },
+    contactPhone: { type: String },
+    country: { type: String, default: "United States" },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
